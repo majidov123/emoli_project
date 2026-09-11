@@ -10,6 +10,15 @@ import {
 } from "./serializers.js";
 
 const productStatuses = Object.values(ProductStatus);
+const stockBuckets = ["OUT", "LOW", "IN_STOCK"] as const;
+
+type StockBucket = (typeof stockBuckets)[number];
+
+const stockFilters: Record<StockBucket, Prisma.IntFilter> = {
+  OUT: { equals: 0 },
+  LOW: { gte: 1, lte: 5 },
+  IN_STOCK: { gt: 5 }
+};
 
 interface ProductsQuery {
   page?: number;
@@ -18,6 +27,8 @@ interface ProductsQuery {
   status?: ProductStatus;
   category?: string;
   botEnabled?: boolean;
+  stockBucket?: StockBucket;
+  hasMinimumPrice?: boolean;
 }
 
 interface ProductParams {
@@ -33,7 +44,9 @@ const productsQuerySchema = {
     search: { type: "string", minLength: 1, maxLength: 200 },
     status: { type: "string", enum: productStatuses },
     category: { type: "string", minLength: 1, maxLength: 100 },
-    botEnabled: { type: "boolean" }
+    botEnabled: { type: "boolean" },
+    stockBucket: { type: "string", enum: stockBuckets },
+    hasMinimumPrice: { type: "boolean" }
   }
 } as const;
 
@@ -82,7 +95,13 @@ export function registerReadRoutes(app: FastifyInstance, prisma: PrismaClient) {
           : {}),
         ...(request.query.status ? { normalizedStatus: request.query.status } : {}),
         ...(category ? { category: { equals: category, mode: "insensitive" } } : {}),
-        ...(request.query.botEnabled === undefined ? {} : { botEnabled: request.query.botEnabled })
+        ...(request.query.botEnabled === undefined ? {} : { botEnabled: request.query.botEnabled }),
+        ...(request.query.stockBucket ? { stock: stockFilters[request.query.stockBucket] } : {}),
+        ...(request.query.hasMinimumPrice === undefined
+          ? {}
+          : request.query.hasMinimumPrice
+            ? { minimumPrice: { not: null } }
+            : { minimumPrice: null })
       };
 
       const [total, products] = await prisma.$transaction([
@@ -110,6 +129,18 @@ export function registerReadRoutes(app: FastifyInstance, prisma: PrismaClient) {
       };
     }
   );
+
+  app.get("/api/products/categories", async () => {
+    const categories = await prisma.product.groupBy({
+      by: ["category"],
+      where: { category: { not: null } },
+      orderBy: { category: "asc" }
+    });
+
+    return {
+      data: categories.flatMap(({ category }) => category === null ? [] : [category])
+    };
+  });
 
   app.get<{ Params: ProductParams }>(
     "/api/products/:id",

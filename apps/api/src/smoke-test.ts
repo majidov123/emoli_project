@@ -11,6 +11,8 @@ interface ProductDto extends Record<string, unknown> {
   normalizedStatus: string;
   category: string | null;
   botEnabled: boolean;
+  stock: number;
+  minimumPrice: string | null;
 }
 
 interface Collection<T> {
@@ -73,10 +75,49 @@ async function main() {
   assert.ok(active.data.length > 0 && active.data.every((product) => product.normalizedStatus === "ACTIVE"));
   const accessories = await getJson<ProductCollection>("/api/products?category=accessories");
   assert.ok(accessories.data.length > 0 && accessories.data.every((product) => product.category === "Accessories"));
+
+  const categories = await getJson<Collection<string>>("/api/products/categories");
+  assert.deepEqual(categories.data, [
+    "Accessories",
+    "Audio",
+    "Cameras",
+    "Chargers",
+    "Home Office",
+    "Smart Home",
+    "Storage"
+  ]);
+  assert.equal(new Set(categories.data).size, categories.data.length);
+
   const botDisabled = await getJson<ProductCollection>("/api/products?botEnabled=false");
   assert.ok(botDisabled.data.length > 0 && botDisabled.data.every((product) => !product.botEnabled));
   const readyBotProducts = await getJson<ProductCollection>("/api/products?status=READY&botEnabled=true");
   assert.ok(readyBotProducts.data.length > 0 && readyBotProducts.data.every((product) => product.normalizedStatus === "READY" && product.botEnabled));
+
+  const outOfStock = await getJson<ProductCollection>("/api/products?stockBucket=OUT");
+  assert.equal(outOfStock.pagination.total, 1);
+  assert.ok(outOfStock.data.every((product) => product.stock === 0));
+
+  const lowStock = await getJson<ProductCollection>("/api/products?stockBucket=LOW");
+  assert.equal(lowStock.pagination.total, 1);
+  assert.ok(lowStock.data.every((product) => product.stock >= 1 && product.stock <= 5));
+
+  const inStock = await getJson<ProductCollection>("/api/products?stockBucket=IN_STOCK");
+  assert.equal(inStock.pagination.total, 10);
+  assert.ok(inStock.data.every((product) => product.stock > 5));
+
+  const withMinimumPrice = await getJson<ProductCollection>("/api/products?hasMinimumPrice=true");
+  assert.equal(withMinimumPrice.pagination.total, 11);
+  assert.ok(withMinimumPrice.data.every((product) => product.minimumPrice !== null));
+
+  const withoutMinimumPrice = await getJson<ProductCollection>("/api/products?hasMinimumPrice=false");
+  assert.equal(withoutMinimumPrice.pagination.total, 1);
+  assert.ok(withoutMinimumPrice.data.every((product) => product.minimumPrice === null));
+
+  const inStockWithoutMinimumPrice = await getJson<ProductCollection>(
+    "/api/products?stockBucket=IN_STOCK&hasMinimumPrice=false"
+  );
+  assert.equal(inStockWithoutMinimumPrice.pagination.total, 1);
+  assert.equal(inStockWithoutMinimumPrice.data[0]?.externalId, "DEMO-P-1010");
 
   const detail = await getJson<{ data: ProductDto & { competitorOffers: Record<string, unknown>[]; priceChanges: Record<string, unknown>[] } }>(`/api/products/${seededProductId}`);
   assert.equal(detail.data.competitorOffers.length, 3);
@@ -96,6 +137,9 @@ async function main() {
 
   await getJson("/api/products?page=0", 400);
   await getJson("/api/products?status=NOT_A_STATUS", 400);
+  await getJson("/api/products?stockBucket=out", 400);
+  await getJson("/api/products?stockBucket=INVALID", 400);
+  await getJson("/api/products?hasMinimumPrice=maybe", 400);
   await getJson("/api/products/not-a-uuid", 400);
   await getJson("/api/products/90000000-0000-4000-8000-000000000001", 404);
 
