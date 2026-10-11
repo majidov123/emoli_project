@@ -1,22 +1,26 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { ApiRequestError, fetchOrders, fetchSettingsManagementSummary } from "../../api";
 import type { OrdersResponse, SettingsManagementSummary } from "../../types";
-import { Icon } from "../Icon";
+import { Icon, type IconName } from "../Icon";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { OrderListDialog } from "./OrderListDialog";
 import { OrdersDashboard } from "./OrdersDashboard";
+import { PickupPointsDashboard } from "./PickupPointsDashboard";
 import { ORDER_STATUS_OPTIONS } from "./orderStatus";
 
-type ManagementTab = "overview" | "orders" | "pickup" | "analytics" | "reports";
+type ManagementTab = "overview" | "orders" | "pickup" | "analytics" | "formula" | "productAnalytics" | "reports";
 
 interface ManagementDashboardProps {
   onBack: () => void;
 }
 
-const tabs: Array<{ id: ManagementTab; label: string; icon: "grid" | "bag" | "truck" | "sliders" | "columns" }> = [
+const tabs: Array<{ id: ManagementTab; label: string; icon: IconName }> = [
   { id: "overview", label: "Ümumi", icon: "grid" },
   { id: "orders", label: "Sifarişlər", icon: "bag" },
   { id: "pickup", label: "Götürülmə nöqtələri", icon: "truck" },
   { id: "analytics", label: "Analitika", icon: "sliders" },
+  { id: "formula", label: "Qiymət düsturu", icon: "filter" },
+  { id: "productAnalytics", label: "Məhsul analitikası", icon: "arrowUp" },
   { id: "reports", label: "Hesabat", icon: "columns" }
 ];
 
@@ -101,6 +105,25 @@ export function ManagementDashboard({ onBack }: ManagementDashboardProps) {
     }
   }
 
+  async function reloadSummary() {
+    setSummaryLoading(true);
+    setError(null);
+    try {
+      const response = await fetchSettingsManagementSummary();
+      setSummary(response.data);
+    } catch (reason) {
+      const message = messageForError(reason) ?? "Lokal göstəriciləri yeniləmək mümkün olmadı.";
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setSummaryLoading(false);
+    }
+  }
+
+  async function reloadAnalytics() {
+    await Promise.all([reloadOrders(), reloadSummary()]);
+  }
+
   return (
     <main className="management-page">
       <nav className="management-breadcrumb" aria-label="Səhifə yolu">
@@ -134,6 +157,16 @@ export function ManagementDashboard({ onBack }: ManagementDashboardProps) {
             loading={ordersLoading}
             error={ordersError}
             onReload={reloadOrders}
+          />
+        ) : activeTab === "pickup" ? (
+          <PickupPointsDashboard storeId={summary?.store.id} />
+        ) : activeTab === "analytics" ? (
+          <AnalyticsDashboard
+            orders={ordersResponse?.data ?? []}
+            summary={summary}
+            loading={ordersLoading || summaryLoading}
+            error={ordersError || error}
+            onRefresh={reloadAnalytics}
           />
         ) : summaryLoading && !summary ? (
           <div className="management-state" role="status"><span className="loading-spinner" />Lokal göstəricilər yüklənir…</div>

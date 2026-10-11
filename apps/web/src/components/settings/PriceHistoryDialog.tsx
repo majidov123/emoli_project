@@ -90,6 +90,15 @@ export function PriceHistoryDialog({ open, onClose }: PriceHistoryDialogProps) {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
@@ -167,42 +176,44 @@ export function PriceHistoryDialog({ open, onClose }: PriceHistoryDialogProps) {
           <button type="button" role="tab" aria-selected="true">Ətraflı</button>
         </div>
 
-        {loading && events.length === 0 ? (
-          <div className="settings-loading" role="status"><span className="loading-spinner" />Tarixçə yüklənir…</div>
-        ) : error && events.length === 0 ? (
-          <div className="settings-load-error" role="alert"><Icon name="alert" /><p>{error}</p><button type="button" className="button button--secondary" onClick={() => setReloadKey((value) => value + 1)}>Yenidən yoxla</button></div>
-        ) : events.length === 0 ? (
-          <div className="settings-empty"><Icon name="refresh" /><p>{search ? "Axtarışa uyğun tarixçə qeydi tapılmadı." : "Tarixçə qeydi tapılmadı."}</p></div>
-        ) : (
-          <ol className="settings-history-feed">
-            {events.map((event, index) => {
-              const occurredAt = event.createdAt ?? event.occurredAt;
-              return (
-                <li key={event.id} className="settings-history-feed__item">
-                  <div className="settings-history-feed__heading">
-                    <h3>{eventTitle(event)}</h3>
-                    <Icon name="chevronRight" className="settings-history-feed__chevron" />
-                  </div>
-                  <div className="settings-history-feed__activity">
-                    <span className="settings-history-feed__icon" aria-hidden="true"><Icon name="refresh" /></span>
-                    <div className="settings-history-feed__content">
-                      <p>{eventDetails(event)}</p>
-                      <time dateTime={occurredAt}>Tarix: {formatHistoryDate(occurredAt)}</time>
+        <div className="settings-history-scroll" tabIndex={0} aria-label="Tarixçə qeydləri">
+          {loading && events.length === 0 ? (
+            <div className="settings-loading" role="status"><span className="loading-spinner" />Tarixçə yüklənir…</div>
+          ) : error && events.length === 0 ? (
+            <div className="settings-load-error" role="alert"><Icon name="alert" /><p>{error}</p><button type="button" className="button button--secondary" onClick={() => setReloadKey((value) => value + 1)}>Yenidən yoxla</button></div>
+          ) : events.length === 0 ? (
+            <div className="settings-empty"><Icon name="refresh" /><p>{search ? "Axtarışa uyğun tarixçə qeydi tapılmadı." : "Tarixçə qeydi tapılmadı."}</p></div>
+          ) : (
+            <ol className="settings-history-feed">
+              {events.map((event, index) => {
+                const occurredAt = event.createdAt ?? event.occurredAt;
+                return (
+                  <li key={event.id} className="settings-history-feed__item">
+                    <div className="settings-history-feed__heading">
+                      <h3>{eventTitle(event)}</h3>
+                      <Icon name="chevronRight" className="settings-history-feed__chevron" />
                     </div>
-                  </div>
-                  {index < events.length - 1 && <span className="settings-history-feed__separator" aria-hidden="true" />}
-                </li>
-              );
-            })}
-          </ol>
-        )}
+                    <div className="settings-history-feed__activity">
+                      <span className="settings-history-feed__icon" aria-hidden="true"><Icon name="refresh" /></span>
+                      <div className="settings-history-feed__content">
+                        <p>{eventDetails(event)}</p>
+                        <time dateTime={occurredAt}>Tarix: {formatHistoryDate(occurredAt)}</time>
+                      </div>
+                    </div>
+                    {index < events.length - 1 && <span className="settings-history-feed__separator" aria-hidden="true" />}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
 
-        {error && events.length > 0 && (
-          <div className="settings-history-feed__error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="button button--secondary" onClick={() => setReloadKey((value) => value + 1)}>Yenidən yoxla</button>
-          </div>
-        )}
+          {error && events.length > 0 && (
+            <div className="settings-history-feed__error" role="alert">
+              <p>{error}</p>
+              <button type="button" className="button button--secondary" onClick={() => setReloadKey((value) => value + 1)}>Yenidən yoxla</button>
+            </div>
+          )}
+        </div>
         {!error && pagination && pagination.page < pagination.totalPages && (
           <div className="settings-history-more">
             <button type="button" className="button button--secondary" onClick={() => setPage(pagination.page + 1)} disabled={loading} aria-busy={loading}>
