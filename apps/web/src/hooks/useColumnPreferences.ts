@@ -39,15 +39,14 @@ function createDefaultState<Id extends string>(
   };
 }
 
-function loadState<Id extends string>(
-  storageKey: string,
+export function resolveColumnPreferences<Id extends string>(
+  raw: string | null,
   columns: readonly TableColumn<Id>[],
   defaultVisible: readonly Id[]
 ): ColumnPreferenceState<Id> {
   const fallback = createDefaultState(columns, defaultVisible);
 
   try {
-    const raw = window.localStorage.getItem(storageKey);
     if (!raw) return fallback;
 
     const parsed: unknown = JSON.parse(raw);
@@ -64,6 +63,18 @@ function loadState<Id extends string>(
     };
   } catch {
     return fallback;
+  }
+}
+
+function loadState<Id extends string>(
+  storageKey: string,
+  columns: readonly TableColumn<Id>[],
+  defaultVisible: readonly Id[]
+): ColumnPreferenceState<Id> {
+  try {
+    return resolveColumnPreferences(window.localStorage.getItem(storageKey), columns, defaultVisible);
+  } catch {
+    return createDefaultState(columns, defaultVisible);
   }
 }
 

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { formatDate, formatMoney } from "../formatters";
-import type { BbuColumnId, TableColumn } from "../tableColumns";
+import { preferredTableWidth, type BbuColumnId, type TableColumn } from "../tableColumns";
 import type { Product } from "../types";
 import { Icon } from "./Icon";
 import { ReadOnlySwitch, StatusBadge } from "./ProductBits";
@@ -23,9 +23,9 @@ function renderCell(
     case "number":
       return rowNumber;
     case "productCode":
-      return <code className="product-code">{product.externalId}</code>;
+      return <code className="product-code" title={product.externalId}>{product.externalId}</code>;
     case "productName":
-      return <strong>{product.name}</strong>;
+      return <strong title={product.name}>{product.name}</strong>;
     case "quantity":
       return <span className={product.stock === 0 ? "stock stock--empty" : "stock"}>{product.stock}</span>;
     case "currentPrice":
@@ -77,13 +77,22 @@ function cellClassName(columnId: BbuColumnId) {
 }
 
 export function BbuProductsTable({ products, page, pageSize, columns, onEditLimits }: BbuProductsTableProps) {
+  const preferredWidth = preferredTableWidth(columns);
+
   return (
     <div className="table-scroll" tabIndex={0} aria-label="BBU məhsulları cədvəli, üfüqi sürüşdürülə bilər">
-      <table className="product-table product-table--bbu">
+      <table className="product-table product-table--bbu" style={{ minWidth: `${preferredWidth}px` }}>
         <caption className="sr-only">BBU məhsullarının kod, qiymət, stok, limit və status məlumatları</caption>
+        <colgroup>
+          {columns.map((column) => (
+            <col key={column.id} style={{ width: `${column.width}px` }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
-            {columns.map((column) => <th key={column.id} scope="col">{column.label}</th>)}
+            {columns.map((column) => (
+              <th key={column.id} scope="col" className={`column-${column.id}`}>{column.label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -92,7 +101,7 @@ export function BbuProductsTable({ products, page, pageSize, columns, onEditLimi
             return (
               <tr key={product.id}>
                 {columns.map((column) => (
-                  <td key={column.id} className={cellClassName(column.id)}>
+                  <td key={column.id} className={`column-${column.id} ${cellClassName(column.id) ?? ""}`}>
                     {renderCell(column.id, product, rowNumber, onEditLimits)}
                   </td>
                 ))}

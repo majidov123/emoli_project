@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchProductCategories, fetchProducts, fetchStores } from "../api";
 import type { ProductFilters, ProductsResponse, Store } from "../types";
 
@@ -14,34 +14,43 @@ function errorMessage(error: unknown) {
 }
 
 export function useStores() {
-  const [requestVersion, setRequestVersion] = useState(0);
+  const controllerRef = useRef<AbortController | null>(null);
   const [state, setState] = useState<AsyncState<Store[]>>({
     data: null,
     loading: true,
     error: null
   });
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
+    controllerRef.current?.abort();
     const controller = new AbortController();
+    controllerRef.current = controller;
     setState((current) => ({ ...current, loading: true, error: null }));
 
-    fetchStores(controller.signal)
-      .then((response) => setState({ data: response.data, loading: false, error: null }))
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setState({ data: null, loading: false, error: errorMessage(error) });
-        }
-      });
+    try {
+      const response = await fetchStores(controller.signal);
+      setState({ data: response.data, loading: false, error: null });
+    } catch (error: unknown) {
+      if (controller.signal.aborted) throw error;
+      const message = errorMessage(error);
+      setState({ data: null, loading: false, error: message });
+      throw new Error(message);
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+    }
+  }, []);
 
-    return () => controller.abort();
-  }, [requestVersion]);
+  useEffect(() => {
+    void refresh().catch(() => undefined);
+    return () => controllerRef.current?.abort();
+  }, [refresh]);
 
-  const retry = useCallback(() => setRequestVersion((version) => version + 1), []);
-  return { ...state, retry };
+  const retry = useCallback(() => void refresh().catch(() => undefined), [refresh]);
+  return { ...state, retry, refresh };
 }
 
 export function useProducts(filters: ProductFilters) {
-  const [requestVersion, setRequestVersion] = useState(0);
+  const controllerRef = useRef<AbortController | null>(null);
   const queryKey = JSON.stringify([
     filters.page,
     filters.pageSize,
@@ -50,8 +59,7 @@ export function useProducts(filters: ProductFilters) {
     filters.category,
     filters.botEnabled,
     filters.stockBucket ?? null,
-    filters.hasMinimumPrice ?? null,
-    requestVersion
+    filters.hasMinimumPrice ?? null
   ]);
   const [state, setState] = useState<AsyncState<ProductsResponse> & { queryKey: string }>({
     data: null,
@@ -60,19 +68,32 @@ export function useProducts(filters: ProductFilters) {
     queryKey
   });
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
+    controllerRef.current?.abort();
     const controller = new AbortController();
+    controllerRef.current = controller;
     setState({ data: null, loading: true, error: null, queryKey });
 
-    fetchProducts(filters, controller.signal)
-      .then((response) => setState({ data: response, loading: false, error: null, queryKey }))
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setState({ data: null, loading: false, error: errorMessage(error), queryKey });
-        }
-      });
-
-    return () => controller.abort();
+    try {
+      const response = await fetchProducts({
+        page: filters.page,
+        pageSize: filters.pageSize,
+        search: filters.search,
+        status: filters.status,
+        category: filters.category,
+        botEnabled: filters.botEnabled,
+        stockBucket: filters.stockBucket,
+        hasMinimumPrice: filters.hasMinimumPrice
+      }, controller.signal);
+      setState({ data: response, loading: false, error: null, queryKey });
+    } catch (error: unknown) {
+      if (controller.signal.aborted) throw error;
+      const message = errorMessage(error);
+      setState({ data: null, loading: false, error: message, queryKey });
+      throw new Error(message);
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+    }
   }, [
     filters.page,
     filters.pageSize,
@@ -82,38 +103,55 @@ export function useProducts(filters: ProductFilters) {
     filters.botEnabled,
     filters.stockBucket,
     filters.hasMinimumPrice,
-    requestVersion
+    queryKey
   ]);
 
-  const retry = useCallback(() => setRequestVersion((version) => version + 1), []);
+  useEffect(() => {
+    void refresh().catch(() => undefined);
+    return () => controllerRef.current?.abort();
+  }, [refresh]);
+
+  const retry = useCallback(() => void refresh().catch(() => undefined), [refresh]);
   return state.queryKey === queryKey
-    ? { data: state.data, loading: state.loading, error: state.error, retry }
-    : { data: null, loading: true, error: null, retry };
+    ? { data: state.data, loading: state.loading, error: state.error, retry, refresh }
+    : { data: null, loading: true, error: null, retry, refresh };
 }
 
 export function useProductCategories() {
+  const controllerRef = useRef<AbortController | null>(null);
   const [state, setState] = useState<AsyncState<string[]>>({
     data: null,
     loading: true,
     error: null
   });
 
-  useEffect(() => {
+  const refresh = useCallback(async () => {
+    controllerRef.current?.abort();
     const controller = new AbortController();
+    controllerRef.current = controller;
     setState((current) => ({ ...current, loading: true, error: null }));
 
-    fetchProductCategories(controller.signal)
-      .then((response) => setState({ data: response.data, loading: false, error: null }))
-      .catch((error: unknown) => {
-        if (!controller.signal.aborted) {
-          setState({ data: null, loading: false, error: errorMessage(error) });
-        }
-      });
-
-    return () => controller.abort();
+    try {
+      const response = await fetchProductCategories(controller.signal);
+      setState({ data: response.data, loading: false, error: null });
+    } catch (error: unknown) {
+      if (controller.signal.aborted) throw error;
+      const message = errorMessage(error);
+      setState({ data: null, loading: false, error: message });
+      throw new Error(message);
+    } finally {
+      if (controllerRef.current === controller) controllerRef.current = null;
+    }
   }, []);
 
-  return state;
+  useEffect(() => {
+    void refresh().catch(() => undefined);
+    return () => controllerRef.current?.abort();
+  }, [refresh]);
+
+  const retry = useCallback(() => void refresh().catch(() => undefined), [refresh]);
+
+  return { ...state, retry, refresh };
 }
 
 export function useDebouncedValue<T>(value: T, delay: number) {

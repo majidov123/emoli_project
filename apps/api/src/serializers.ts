@@ -1,7 +1,11 @@
 import type {
   BotRun,
   BotSettings,
+  CatalogProduct,
   CompetitorOffer,
+  Order,
+  OrderItem,
+  OrderStatusHistory,
   PriceChange,
   Prisma,
   Product,
@@ -39,11 +43,45 @@ export function serializeProduct(product: Product) {
   };
 }
 
+export function serializeCatalogProduct(product: CatalogProduct) {
+  return {
+    ...product,
+    defaultPrice: product.defaultPrice.toFixed(2),
+    createdAt: serializeDate(product.createdAt),
+    updatedAt: serializeDate(product.updatedAt)
+  };
+}
+
 export function serializeCompetitorOffer(offer: CompetitorOffer) {
   return {
     ...offer,
     price: serializeMoney(offer.price),
     observedAt: serializeDate(offer.observedAt)
+  };
+}
+
+export function serializeOrder(order: Order) {
+  return {
+    ...order,
+    totalAmount: order.totalAmount.toFixed(2),
+    orderedAt: serializeDate(order.orderedAt),
+    loadedAt: serializeDate(order.loadedAt),
+    createdAt: serializeDate(order.createdAt),
+    updatedAt: serializeDate(order.updatedAt)
+  };
+}
+
+export function serializeOrderItem(item: OrderItem) {
+  return {
+    ...item,
+    unitPrice: item.unitPrice.toFixed(2)
+  };
+}
+
+export function serializeOrderStatusHistory(entry: OrderStatusHistory) {
+  return {
+    ...entry,
+    occurredAt: serializeDate(entry.occurredAt)
   };
 }
 

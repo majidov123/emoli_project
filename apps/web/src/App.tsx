@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { fetchProducts } from "./api";
+import { AddProductDialog } from "./components/AddProductDialog";
 import { BbuProductsTable } from "./components/BbuProductsTable";
 import { BotFilterDrawer, DEFAULT_BOT_FILTERS } from "./components/BotFilterDrawer";
 import {
@@ -13,8 +15,12 @@ import { LimitDialog } from "./components/LimitDialog";
 import { Pagination } from "./components/Pagination";
 import { ProductTabs } from "./components/ProductTabs";
 import { StatusCards } from "./components/StatusCards";
+import { SettingsDrawer } from "./components/SettingsDrawer";
+import { ExcelLimitPanel } from "./components/settings/ExcelLimitPanel";
+import { ManagementDashboard } from "./components/settings/ManagementDashboard";
 import { StoreHeader } from "./components/StoreHeader";
 import { TableState } from "./components/TableState";
+import { createProductFilters, reloadDashboardData } from "./dashboardState";
 import { useColumnPreferences } from "./hooks/useColumnPreferences";
 import {
   useDebouncedValue,
@@ -28,13 +34,32 @@ import {
   BOT_COLUMNS,
   BOT_DEFAULT_VISIBLE
 } from "./tableColumns";
-import type { BotProductFilters, Product, ProductFilters, ProductSource, ProductStatus } from "./types";
+import type {
+  AddProductsFromCatalogResponse,
+  BotProductFilters,
+  Product,
+  ProductExportScope,
+  ProductFilters,
+  ProductSource,
+  ProductStatus
+} from "./types";
+import {
+  downloadProductsWorkbook,
+  productMatchesExportScope
+} from "./lib/productExcel";
 
 const DEFAULT_PAGE_SIZE = 5;
 const BBU_COLUMNS_STORAGE_KEY = "birmarket.dashboard.columns.bbu.v1";
 const BOT_COLUMNS_STORAGE_KEY = "birmarket.dashboard.columns.bot.v1";
 
+interface DashboardFeedback {
+  tone: "success" | "error";
+  message: string;
+}
+
 export function App() {
+  const refreshingRef = useRef(false);
+  const previousViewRef = useRef<"products" | "management">("products");
   const [source, setSource] = useState<ProductSource>("bbu");
   const [searchInput, setSearchInput] = useState("");
   const [bbuStatus, setBbuStatus] = useState<ProductStatus | undefined>();
@@ -47,6 +72,14 @@ export function App() {
   const [limitProduct, setLimitProduct] = useState<Product | null>(null);
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const [columnManagerSource, setColumnManagerSource] = useState<ProductSource | null>(null);
+  const [addProductOpen, setAddProductOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [view, setView] = useState<"products" | "management">("products");
+  const [theme, setTheme] = useState<"dark" | "light">(() =>
+    window.localStorage.getItem("birmarket.dashboard.theme.v1") === "light" ? "light" : "dark"
+  );
+  const [refreshing, setRefreshing] = useState(false);
+  const [feedback, setFeedback] = useState<DashboardFeedback | null>(null);
 
   const search = useDebouncedValue(searchInput.trim(), 300);
   const stores = useStores();
@@ -63,30 +96,16 @@ export function App() {
     BOT_DEFAULT_VISIBLE
   );
 
-  const productFilters = useMemo<ProductFilters>(() => {
-    if (source === "bbu") {
-      return {
-        page: bbuPage,
-        pageSize: bbuPageSize,
-        search,
-        status: bbuStatus,
-        category: "",
-        botEnabled: "all"
-      };
-    }
-
-    return {
-      page: botPage,
-      pageSize: botPageSize,
-      search,
-      category: botFilters.category,
-      botEnabled: botFilters.botEnabled,
-      stockBucket: botFilters.stockBucket === "all" ? undefined : botFilters.stockBucket,
-      hasMinimumPrice: botFilters.minimumPrice === "all"
-        ? undefined
-        : botFilters.minimumPrice === "limited"
-    };
-  }, [
+  const productFilters = useMemo<ProductFilters>(() => createProductFilters({
+    source,
+    search,
+    bbuPage,
+    bbuPageSize,
+    bbuStatus,
+    botPage,
+    botPageSize,
+    botFilters
+  }), [
     bbuPage,
     bbuPageSize,
     bbuStatus,
@@ -124,6 +143,28 @@ export function App() {
     botFilters.minimumPrice,
     botFilters.stockBucket
   ]);
+
+  useEffect(() => {
+    if (!feedback) return;
+    const timeout = window.setTimeout(() => setFeedback(null), 6000);
+    return () => window.clearTimeout(timeout);
+  }, [feedback]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem("birmarket.dashboard.theme.v1", theme);
+  }, [theme]);
+
+  useEffect(() => {
+    const previousView = previousViewRef.current;
+    previousViewRef.current = view;
+
+    if (previousView === "management" && view === "products") {
+      window.requestAnimationFrame(() => {
+        document.getElementById(`products-heading-${source}`)?.focus();
+      });
+    }
+  }, [source, view]);
 
   function updateSearch(value: string) {
     setSearchInput(value);
@@ -193,6 +234,84 @@ export function App() {
     });
   }
 
+  async function reloadLocalData() {
+    await reloadDashboardData([
+      stores.refresh,
+      products.refresh,
+      categories.refresh
+    ]);
+  }
+
+  async function refreshProducts() {
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    setFeedback(null);
+    try {
+      await reloadLocalData();
+      setFeedback({ tone: "success", message: "Məhsullar yenidən yükləndi" });
+    } catch (error: unknown) {
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error
+          ? error.message
+          : "Yerli məhsul məlumatlarını yenidən yükləmək mümkün olmadı."
+      });
+    } finally {
+      refreshingRef.current = false;
+      setRefreshing(false);
+    }
+  }
+
+  async function handleCatalogProductsAdded(result: AddProductsFromCatalogResponse) {
+    const refreshResults = await Promise.allSettled([
+      stores.refresh(),
+      products.refresh(),
+      categories.refresh()
+    ]);
+    setAddProductOpen(false);
+
+    if (refreshResults.some((item) => item.status === "rejected")) {
+      setFeedback({
+        tone: "error",
+        message: `${result.addedCount} məhsul əlavə edildi, lakin siyahını yeniləmək mümkün olmadı.`
+      });
+      return;
+    }
+
+    setFeedback({
+      tone: "success",
+      message: result.addedCount === 1
+        ? "Məhsul yerli mağazaya əlavə edildi."
+        : `${result.addedCount} məhsul yerli mağazaya əlavə edildi.`
+    });
+  }
+
+  async function exportLocalProducts(scope: ProductExportScope = "ALL") {
+    const controller = new AbortController();
+    const rows: Product[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await fetchProducts({
+        page,
+        pageSize: 100,
+        search: "",
+        category: "",
+        botEnabled: "all"
+      }, controller.signal);
+      rows.push(...response.data);
+      totalPages = response.pagination.totalPages;
+      page += 1;
+    } while (page <= totalPages);
+
+    const storeRows = activeStore
+      ? rows.filter((product) => product.storeId === activeStore.id)
+      : rows;
+    await downloadProductsWorkbook(storeRows.filter((product) => productMatchesExportScope(product, scope)));
+  }
+
   const tableState = products.loading ? (
     <TableState kind="loading" />
   ) : products.error ? (
@@ -201,6 +320,14 @@ export function App() {
     <TableState kind="empty" hasActiveFilters={hasActiveFilters} onClear={clearCurrentFilters} />
   ) : null;
 
+  if (view === "management") {
+    return (
+      <div className="app-shell app-shell--management">
+        <ManagementDashboard onBack={() => setView("products")} />
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <StoreHeader
@@ -208,9 +335,23 @@ export function App() {
         loading={stores.loading}
         error={stores.error}
         search={searchInput}
+        refreshing={refreshing}
         onSearchChange={updateSearch}
         onRetry={stores.retry}
+        onAddProduct={() => setAddProductOpen(true)}
+        onRefreshProducts={() => void refreshProducts()}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
+
+      {feedback && (
+        <div
+          className={`dashboard-feedback dashboard-feedback--${feedback.tone}`}
+          role={feedback.tone === "error" ? "alert" : "status"}
+        >
+          <span>{feedback.message}</span>
+          <button type="button" onClick={() => setFeedback(null)} aria-label="Bildirişi bağla">×</button>
+        </div>
+      )}
 
       <main className="dashboard-content">
         <div className="source-switcher">
@@ -226,12 +367,9 @@ export function App() {
                 <div className="products-section__heading">
                   <div>
                     <span className="section-kicker">Məhsul idarəetməsi</span>
-                    <h2 id="products-heading-bbu">BBU məhsulları</h2>
+                    <h2 id="products-heading-bbu" tabIndex={-1}>BBU məhsulları</h2>
                     <p>{products.loading ? "Məlumatlar yenilənir…" : `${pagination?.total ?? 0} uyğun məhsul tapıldı`}</p>
                   </div>
-                </div>
-
-                <div className="table-toolbar table-toolbar--bbu">
                   <ColumnsButton count={bbuColumns.visibleCount} onClick={() => setColumnManagerSource("bbu")} />
                 </div>
 
@@ -266,7 +404,7 @@ export function App() {
               <div className="products-section__heading">
                 <div>
                   <span className="section-kicker">Məhsul idarəetməsi</span>
-                  <h2 id="products-heading-bot">Bot məhsulları</h2>
+                  <h2 id="products-heading-bot" tabIndex={-1}>Bot məhsulları</h2>
                   <p>{products.loading ? "Məlumatlar yenilənir…" : `${pagination?.total ?? 0} uyğun məhsul tapıldı`}</p>
                 </div>
               </div>
@@ -349,6 +487,30 @@ export function App() {
       />
 
       <LimitDialog product={limitProduct} onClose={() => setLimitProduct(null)} />
+
+      <AddProductDialog
+        open={addProductOpen}
+        onClose={() => setAddProductOpen(false)}
+        onAdded={handleCatalogProductsAdded}
+      />
+
+      <SettingsDrawer
+        open={settingsOpen}
+        storeName={activeStore?.name}
+        storeUsername={activeStore?.externalId ?? activeStore?.platform}
+        onClose={() => setSettingsOpen(false)}
+        onExportProducts={exportLocalProducts}
+        excelPanel={<ExcelLimitPanel onApplied={reloadLocalData} />}
+        onOperationApplied={async () => {
+          await reloadLocalData();
+        }}
+        theme={theme}
+        onToggleTheme={() => setTheme((current) => current === "dark" ? "light" : "dark")}
+        onOpenManagement={() => {
+          setSettingsOpen(false);
+          setView("management");
+        }}
+      />
     </div>
   );
 }

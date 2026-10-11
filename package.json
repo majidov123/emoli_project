@@ -15,7 +15,15 @@
     "db:migrate": "npm run db:migrate -w @birmarket/api",
     "db:seed": "npm run db:seed -w @birmarket/api",
     "db:studio": "npm run db:studio -w @birmarket/api",
-    "test:api": "npm run test:api -w @birmarket/api"
+    "test:api": "npm run test:api -w @birmarket/api",
+    "test:catalog": "npm run test:catalog -w @birmarket/api",
+    "test:settings": "npm run test:settings -w @birmarket/api",
+    "test:settings-operations": "npm run test:settings-operations -w @birmarket/api",
+    "test:orders": "npm run test:orders -w @birmarket/api",
+    "test:dashboard": "npm run test:dashboard -w @birmarket/web",
+    "test:orders-ui": "npm run test:orders-ui -w @birmarket/web",
+    "test:excel": "npm run test:excel -w @birmarket/web",
+    "test:milestone": "npm run test:milestone -w @birmarket/api && npm run test:dashboard -w @birmarket/web && npm run test:orders-ui -w @birmarket/web && npm run test:excel -w @birmarket/web"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

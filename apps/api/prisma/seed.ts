@@ -1,6 +1,8 @@
 import {
+  BotPriceSource,
   BotRunSource,
   BotRunStatus,
+  OrderStatus,
   PriceChangeDirection,
   Prisma,
   PrismaClient,
@@ -12,10 +14,81 @@ const storeId = "00000000-0000-4000-8000-000000000001";
 const settingsId = "50000000-0000-4000-8000-000000000001";
 const productId = (suffix: number) =>
   `10000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
+const catalogProductId = (suffix: number) =>
+  `60000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
+const orderId = (suffix: number) =>
+  `70000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
+const orderItemId = (suffix: number) =>
+  `71000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
+const orderHistoryId = (suffix: number) =>
+  `72000000-0000-4000-8000-${suffix.toString().padStart(12, "0")}`;
 const money = (value: string) => new Prisma.Decimal(value);
 const observedAt = new Date("2026-09-01T08:00:00.000Z");
 const createdAt = new Date("2026-08-31T08:00:00.000Z");
 const updatedAt = new Date("2026-09-03T08:00:00.000Z");
+
+const catalogProducts: Prisma.CatalogProductUncheckedCreateInput[] = [
+  {
+    id: catalogProductId(1), externalId: "LOCAL-CAT-2001", name: "Zephyr Foldable Phone Stand",
+    imageUrl: null, category: "Accessories", barcode: "9900000002001", mpn: "ZEP-STD-A1",
+    defaultPrice: money("18.75"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(2), externalId: "LOCAL-CAT-2002", name: "Maral Compact Bluetooth Speaker",
+    imageUrl: null, category: "Audio", barcode: "9900000002002", mpn: "MAR-SPK-C2",
+    defaultPrice: money("42.90"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(3), externalId: "LOCAL-CAT-2003", name: "Kura Braided USB-C Cable",
+    imageUrl: null, category: "Chargers", barcode: "9900000002003", mpn: null,
+    defaultPrice: money("11.40"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(4), externalId: "LOCAL-CAT-2004", name: "Solis Monitor Light Bar",
+    imageUrl: null, category: "Home Office", barcode: null, mpn: "SOL-LGT-M4",
+    defaultPrice: money("64.25"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(5), externalId: "LOCAL-CAT-2005", name: "Atlas Mini Tripod",
+    imageUrl: null, category: "Cameras", barcode: "9900000002005", mpn: "ATL-TRI-M5",
+    defaultPrice: money("27.30"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(6), externalId: "LOCAL-CAT-2006", name: "Nimbus Wireless Presenter",
+    imageUrl: null, category: "Home Office", barcode: "9900000002006", mpn: null,
+    defaultPrice: money("36.80"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(7), externalId: "LOCAL-CAT-2007", name: "Pomegranate Desk Organizer",
+    imageUrl: null, category: "Home Office", barcode: null, mpn: "PMG-ORG-D7",
+    defaultPrice: money("23.60"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(8), externalId: "LOCAL-CAT-2008", name: "Meridian Portable Card Reader",
+    imageUrl: null, category: "Storage", barcode: "9900000002008", mpn: "MER-CRD-P8",
+    defaultPrice: money("16.95"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(9), externalId: "LOCAL-CAT-2009", name: "Quartz Travel Adapter",
+    imageUrl: null, category: "Chargers", barcode: "9900000002009", mpn: "QTZ-ADP-T9",
+    defaultPrice: money("31.10"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(10), externalId: "LOCAL-CAT-2010", name: "Willow Webcam Privacy Cover",
+    imageUrl: null, category: "Accessories", barcode: "9900000002010", mpn: null,
+    defaultPrice: money("6.45"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(11), externalId: "LOCAL-CAT-2011", name: "Horizon Ergonomic Wrist Rest",
+    imageUrl: null, category: "Accessories", barcode: null, mpn: "HRZ-WRS-E11",
+    defaultPrice: money("21.55"), active: true, createdAt, updatedAt
+  },
+  {
+    id: catalogProductId(12), externalId: "LOCAL-CAT-2012", name: "Ember Pocket Fan",
+    imageUrl: null, category: "Accessories", barcode: "9900000002012", mpn: "EMB-FAN-P12",
+    defaultPrice: money("14.20"), active: false, createdAt, updatedAt
+  }
+];
 
 const products: Prisma.ProductUncheckedCreateInput[] = [
   {
@@ -167,6 +240,135 @@ const priceChanges: Prisma.PriceChangeUncheckedCreateInput[] = [
   }
 ];
 
+const ordersLoadedAt = new Date("2026-09-03T09:30:00.000Z");
+const orders: Prisma.OrderUncheckedCreateInput[] = [
+  {
+    id: orderId(1), storeId, externalId: "LOCAL-ORDER-2026-0001", customerName: "Demo alıcı 01",
+    totalAmount: money("48.49"), orderedAt: new Date("2026-08-25T10:15:00.000Z"),
+    currentStatus: OrderStatus.NEW, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-25T10:15:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(2), storeId, externalId: "LOCAL-ORDER-2026-0002", customerName: "Demo alıcı 02",
+    totalAmount: money("109.49"), orderedAt: new Date("2026-08-26T11:20:00.000Z"),
+    currentStatus: OrderStatus.PACKAGING, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-26T11:20:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(3), storeId, externalId: "LOCAL-ORDER-2026-0003", customerName: "Demo alıcı 03",
+    totalAmount: money("80.90"), orderedAt: new Date("2026-08-27T12:25:00.000Z"),
+    currentStatus: OrderStatus.WITH_COURIER, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-27T12:25:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(4), storeId, externalId: "LOCAL-ORDER-2026-0004", customerName: "Demo alıcı 04",
+    totalAmount: money("38.98"), orderedAt: new Date("2026-08-28T13:30:00.000Z"),
+    currentStatus: OrderStatus.DELIVERED, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-28T13:30:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(5), storeId, externalId: "LOCAL-ORDER-2026-0005", customerName: "Demo alıcı 05",
+    totalAmount: money("77.48"), orderedAt: new Date("2026-08-29T14:35:00.000Z"),
+    currentStatus: OrderStatus.COMPLETED, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-29T14:35:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(6), storeId, externalId: "LOCAL-ORDER-2026-0006", customerName: null,
+    totalAmount: money("31.50"), orderedAt: new Date("2026-08-30T15:40:00.000Z"),
+    currentStatus: OrderStatus.CUSTOMER_CANCELLED, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-30T15:40:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(7), storeId, externalId: "LOCAL-ORDER-2026-0007", customerName: "Demo alıcı 07",
+    totalAmount: money("89.00"), orderedAt: new Date("2026-08-31T16:45:00.000Z"),
+    currentStatus: OrderStatus.LOGISTICS_CANCELLED, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-08-31T16:45:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(8), storeId, externalId: "LOCAL-ORDER-2026-0008", customerName: "Demo alıcı 08",
+    totalAmount: money("34.99"), orderedAt: new Date("2026-09-01T09:05:00.000Z"),
+    currentStatus: OrderStatus.BUYER_NOT_HOME, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-09-01T09:05:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(9), storeId, externalId: "LOCAL-ORDER-2026-0009", customerName: "Demo alıcı 09",
+    totalAmount: money("79.80"), orderedAt: new Date("2026-09-02T10:10:00.000Z"),
+    currentStatus: OrderStatus.AT_PUDO, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-09-02T10:10:00.000Z"), updatedAt: ordersLoadedAt
+  },
+  {
+    id: orderId(10), storeId, externalId: "LOCAL-ORDER-2026-0010", customerName: "Demo alıcı 10",
+    totalAmount: money("64.39"), orderedAt: new Date("2026-09-03T08:15:00.000Z"),
+    currentStatus: OrderStatus.RETURNED, loadedAt: ordersLoadedAt,
+    createdAt: new Date("2026-09-03T08:15:00.000Z"), updatedAt: ordersLoadedAt
+  }
+];
+
+const orderItems: Prisma.OrderItemUncheckedCreateInput[] = [
+  { id: orderItemId(1), orderId: orderId(1), productId: productId(1), productExternalId: "DEMO-P-1001", productName: "Aster Wireless Mouse", imageUrl: null, quantity: 1, unitPrice: money("24.49") },
+  { id: orderItemId(2), orderId: orderId(1), productId: productId(10), productExternalId: "DEMO-P-1010", productName: "Luma Cable Organizer", imageUrl: null, quantity: 2, unitPrice: money("12.00") },
+  { id: orderItemId(3), orderId: orderId(2), productId: productId(11), productExternalId: "DEMO-P-1011", productName: "Aster Portable SSD 1 TB", imageUrl: null, quantity: 1, unitPrice: money("109.49") },
+  { id: orderItemId(4), orderId: orderId(3), productId: productId(4), productExternalId: "DEMO-P-1004", productName: "Aster 65W Charger", imageUrl: null, quantity: 1, unitPrice: money("44.90") },
+  { id: orderItemId(5), orderId: orderId(3), productId: productId(10), productExternalId: "DEMO-P-1010", productName: "Luma Cable Organizer", imageUrl: null, quantity: 3, unitPrice: money("12.00") },
+  { id: orderItemId(6), orderId: orderId(4), productId: productId(8), productExternalId: "DEMO-P-1008", productName: "Caspian Noise-Isolating Earbuds", imageUrl: null, quantity: 2, unitPrice: money("19.49") },
+  { id: orderItemId(7), orderId: orderId(5), productId: productId(12), productExternalId: "DEMO-P-1012", productName: "Nova Full HD Webcam", imageUrl: null, quantity: 1, unitPrice: money("52.99") },
+  { id: orderItemId(8), orderId: orderId(5), productId: productId(1), productExternalId: "DEMO-P-1001", productName: "Aster Wireless Mouse", imageUrl: null, quantity: 1, unitPrice: money("24.49") },
+  { id: orderItemId(9), orderId: orderId(6), productId: productId(5), productExternalId: "DEMO-P-1005", productName: "Luma Desk Lamp", imageUrl: null, quantity: 1, unitPrice: money("31.50") },
+  { id: orderItemId(10), orderId: orderId(7), productId: productId(2), productExternalId: "DEMO-P-1002", productName: "Luma Mechanical Keyboard", imageUrl: null, quantity: 1, unitPrice: money("89.00") },
+  { id: orderItemId(11), orderId: orderId(8), productId: productId(7), productExternalId: "DEMO-P-1007", productName: "Nova Laptop Stand", imageUrl: null, quantity: 1, unitPrice: money("34.99") },
+  { id: orderItemId(12), orderId: orderId(9), productId: productId(3), productExternalId: "DEMO-P-1003", productName: "Nova USB-C Hub", imageUrl: null, quantity: 2, unitPrice: money("39.90") },
+  { id: orderItemId(13), orderId: orderId(10), productId: productId(4), productExternalId: "DEMO-P-1004", productName: "Aster 65W Charger", imageUrl: null, quantity: 1, unitPrice: money("44.90") },
+  { id: orderItemId(14), orderId: orderId(10), productId: productId(8), productExternalId: "DEMO-P-1008", productName: "Caspian Noise-Isolating Earbuds", imageUrl: null, quantity: 1, unitPrice: money("19.49") }
+];
+
+const statusHistoryEntry = (
+  id: number,
+  order: number,
+  status: OrderStatus,
+  occurredAt: string
+): Prisma.OrderStatusHistoryUncheckedCreateInput => ({
+  id: orderHistoryId(id),
+  orderId: orderId(order),
+  status,
+  occurredAt: new Date(occurredAt)
+});
+
+const orderStatusHistory: Prisma.OrderStatusHistoryUncheckedCreateInput[] = [
+  statusHistoryEntry(1, 1, OrderStatus.NEW, "2026-08-25T10:15:00.000Z"),
+  statusHistoryEntry(2, 2, OrderStatus.NEW, "2026-08-26T11:20:00.000Z"),
+  statusHistoryEntry(3, 2, OrderStatus.CUSTOMER_CONFIRMED, "2026-08-26T12:00:00.000Z"),
+  statusHistoryEntry(4, 2, OrderStatus.PACKAGING, "2026-08-26T13:10:00.000Z"),
+  statusHistoryEntry(5, 3, OrderStatus.NEW, "2026-08-27T12:25:00.000Z"),
+  statusHistoryEntry(6, 3, OrderStatus.CUSTOMER_CONFIRMED, "2026-08-27T12:55:00.000Z"),
+  statusHistoryEntry(7, 3, OrderStatus.PACKED, "2026-08-27T14:00:00.000Z"),
+  statusHistoryEntry(8, 3, OrderStatus.ACCEPTED_FOR_DELIVERY, "2026-08-28T07:30:00.000Z"),
+  statusHistoryEntry(9, 3, OrderStatus.WITH_COURIER, "2026-08-28T09:00:00.000Z"),
+  statusHistoryEntry(10, 4, OrderStatus.NEW, "2026-08-28T13:30:00.000Z"),
+  statusHistoryEntry(11, 4, OrderStatus.PACKED, "2026-08-28T15:00:00.000Z"),
+  statusHistoryEntry(12, 4, OrderStatus.WITH_COURIER, "2026-08-29T08:30:00.000Z"),
+  statusHistoryEntry(13, 4, OrderStatus.DELIVERED, "2026-08-29T12:45:00.000Z"),
+  statusHistoryEntry(14, 5, OrderStatus.NEW, "2026-08-29T14:35:00.000Z"),
+  statusHistoryEntry(15, 5, OrderStatus.PACKED, "2026-08-29T16:00:00.000Z"),
+  statusHistoryEntry(16, 5, OrderStatus.DELIVERED, "2026-08-30T11:00:00.000Z"),
+  statusHistoryEntry(17, 5, OrderStatus.COMPLETED, "2026-08-30T12:00:00.000Z"),
+  statusHistoryEntry(18, 6, OrderStatus.NEW, "2026-08-30T15:40:00.000Z"),
+  statusHistoryEntry(19, 6, OrderStatus.CUSTOMER_CANCELLED, "2026-08-30T16:05:00.000Z"),
+  statusHistoryEntry(20, 7, OrderStatus.NEW, "2026-08-31T16:45:00.000Z"),
+  statusHistoryEntry(21, 7, OrderStatus.PACKAGING, "2026-08-31T17:10:00.000Z"),
+  statusHistoryEntry(22, 7, OrderStatus.LOGISTICS_CANCELLED, "2026-09-01T08:00:00.000Z"),
+  statusHistoryEntry(23, 8, OrderStatus.NEW, "2026-09-01T09:05:00.000Z"),
+  statusHistoryEntry(24, 8, OrderStatus.WITH_COURIER, "2026-09-02T08:20:00.000Z"),
+  statusHistoryEntry(25, 8, OrderStatus.BUYER_NOT_HOME, "2026-09-02T12:30:00.000Z"),
+  statusHistoryEntry(26, 9, OrderStatus.NEW, "2026-09-02T10:10:00.000Z"),
+  statusHistoryEntry(27, 9, OrderStatus.PACKED, "2026-09-02T12:00:00.000Z"),
+  statusHistoryEntry(28, 9, OrderStatus.ON_WAY_TO_PUDO, "2026-09-03T07:45:00.000Z"),
+  statusHistoryEntry(29, 9, OrderStatus.AT_PUDO, "2026-09-03T09:00:00.000Z"),
+  statusHistoryEntry(30, 10, OrderStatus.NEW, "2026-09-03T08:15:00.000Z"),
+  statusHistoryEntry(31, 10, OrderStatus.WITH_COURIER, "2026-09-03T08:40:00.000Z"),
+  statusHistoryEntry(32, 10, OrderStatus.DELIVERED, "2026-09-03T09:00:00.000Z"),
+  statusHistoryEntry(33, 10, OrderStatus.RETURNED, "2026-09-03T09:20:00.000Z")
+];
+
 const botRuns: Prisma.BotRunUncheckedCreateInput[] = [
   {
     id: "40000000-0000-4000-8000-000000000001", status: BotRunStatus.SUCCESS,
@@ -214,10 +416,22 @@ async function main() {
     const { id: seededStoreId, ...storeUpdate } = store;
     await tx.store.upsert({ where: { id: seededStoreId }, create: store, update: storeUpdate });
 
+    for (const catalogProduct of catalogProducts) {
+      const { id, ...update } = catalogProduct;
+      await tx.catalogProduct.upsert({ where: { id }, create: catalogProduct, update });
+    }
+
     for (const product of products) {
       const { id, ...update } = product;
       await tx.product.upsert({ where: { id }, create: product, update });
     }
+
+    // Replace only this seed's fixed order IDs so reruns cannot remove local user-created orders.
+    await tx.order.deleteMany({ where: { id: { in: orders.map((order) => order.id) } } });
+    await tx.order.createMany({ data: orders });
+    await tx.orderItem.createMany({ data: orderItems });
+    await tx.orderStatusHistory.createMany({ data: orderStatusHistory });
+
     for (const offer of offers) {
       const { id, ...update } = offer;
       await tx.competitorOffer.upsert({ where: { id }, create: offer, update });
@@ -234,6 +448,7 @@ async function main() {
     const settings: Prisma.BotSettingsUncheckedCreateInput = {
       id: settingsId,
       botEnabled: true,
+      botPriceSource: BotPriceSource.BBU,
       checkIntervalMinutes: 15,
       undercutAmount: money("0.01"),
       allowProductsWithoutMinimumPrice: false,
@@ -249,7 +464,7 @@ async function main() {
     });
   });
 
-  console.log(`Seeded 1 store, ${products.length} products, ${offers.length} offers, ${priceChanges.length} price changes, ${botRuns.length} bot runs, and 1 settings record.`);
+  console.log(`Seeded 1 store, ${catalogProducts.length} catalog products, ${products.length} products, ${orders.length} local orders, ${offers.length} offers, ${priceChanges.length} price changes, ${botRuns.length} bot runs, and 1 settings record.`);
 }
 
 main()

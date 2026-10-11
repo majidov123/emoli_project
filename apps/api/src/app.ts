@@ -1,8 +1,11 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import type { PrismaClient } from "@prisma/client";
+import { registerCatalogRoutes } from "./catalog-routes.js";
 import { createDatabaseClient } from "./database.js";
+import { registerOrderRoutes } from "./orders-routes.js";
 import { registerReadRoutes } from "./routes.js";
+import { registerSettingsRoutes } from "./settings-routes.js";
 
 interface BuildAppOptions {
   logger?: boolean;
@@ -23,6 +26,9 @@ export function buildApp(options: BuildAppOptions = {}) {
 
   app.get("/api/health", async () => ({ status: "ok" }));
   registerReadRoutes(app, prisma);
+  registerCatalogRoutes(app, prisma);
+  registerOrderRoutes(app, prisma);
+  registerSettingsRoutes(app, prisma);
 
   app.addHook("onClose", async () => {
     await prisma.$disconnect();

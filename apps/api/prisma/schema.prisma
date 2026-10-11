@@ -39,45 +39,97 @@ enum BotRunSource {
   SCHEDULED
 }
 
+enum BotPriceSource {
+  BBU
+  SITE
+}
+
+enum SettingsOperationType {
+  AUTO_ASSIGN_MINIMUM_LIMITS
+  ADJUST_PRICES_TO_MINIMUM
+  SET_PRICES_TO_MAXIMUM
+  INCREASE_PRICES
+  IMPORT_LIMITS
+}
+
+enum OrderStatus {
+  BUYER_NOT_HOME
+  RETURNED
+  PACKAGING
+  NEW
+  CLARIFYING_WITH_CUSTOMER
+  CUSTOMER_CONFIRMED
+  READY_FOR_DELIVERY
+  ACCEPTED_FOR_DELIVERY
+  REJECTED_FOR_DELIVERY
+  ON_WAY_TO_DISTRIBUTION_CENTER
+  AT_DISTRIBUTION_CENTER
+  DELIVERY_SCHEDULED
+  WITH_COURIER
+  ON_WAY_TO_PUDO
+  AT_PUDO
+  DELIVERED
+  PARTIALLY_DELIVERED
+  CUSTOMER_REFUSED
+  LOGISTICS_CANCELLED
+  COMPLETED
+  CUSTOMER_CANCELLED
+  MARKET_CANCELLED
+  REDIRECTED
+  STORAGE_AT_DC_PARTNER
+  ON_THE_WAY_TO_DC_PARTNER
+  ON_WAY_TO_INTERMEDIATE_CENTER
+  AT_INTERMEDIATE_CENTER
+  CONFIRMED_FOR_PICKING
+  PICKING
+  PICKING_COMPLETED
+  PACKED
+  OFFLINE_CREDIT
+}
+
 model Store {
-  id         String    @id @default(uuid()) @db.Uuid
-  name       String
-  platform   String
-  externalId String?
-  active     Boolean   @default(true)
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
-  products   Product[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String
+  platform           String
+  externalId         String?
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
+  products           Product[]
+  orders             Order[]
+  settingsOperations SettingsOperation[]
 
   @@unique([platform, externalId])
   @@index([platform, active])
 }
 
 model Product {
-  id                    String            @id @default(uuid()) @db.Uuid
-  storeId               String            @db.Uuid
-  externalId            String
-  sku                   String?
-  name                  String
-  imageUrl              String?
-  category              String?
-  brand                 String?
-  stock                 Int               @default(0)
-  previousPrice         Decimal?          @db.Decimal(12, 2)
-  currentPrice          Decimal?          @db.Decimal(12, 2)
-  marketplacePrice      Decimal?          @db.Decimal(12, 2)
-  competitorLowestPrice Decimal?          @db.Decimal(12, 2)
-  minimumPrice          Decimal?          @db.Decimal(12, 2)
-  maximumPrice          Decimal?          @db.Decimal(12, 2)
-  botEnabled            Boolean           @default(false)
-  normalizedStatus      ProductStatus     @default(UNKNOWN)
-  externalStatus        String?
-  sourceUpdatedAt       DateTime?         @db.Timestamptz(3)
-  createdAt             DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt             DateTime          @updatedAt @db.Timestamptz(3)
-  store                 Store             @relation(fields: [storeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  competitorOffers      CompetitorOffer[]
-  priceChanges          PriceChange[]
+  id                     String                  @id @default(uuid()) @db.Uuid
+  storeId                String                  @db.Uuid
+  externalId             String
+  sku                    String?
+  name                   String
+  imageUrl               String?
+  category               String?
+  brand                  String?
+  stock                  Int                     @default(0)
+  previousPrice          Decimal?                @db.Decimal(12, 2)
+  currentPrice           Decimal?                @db.Decimal(12, 2)
+  marketplacePrice       Decimal?                @db.Decimal(12, 2)
+  competitorLowestPrice  Decimal?                @db.Decimal(12, 2)
+  minimumPrice           Decimal?                @db.Decimal(12, 2)
+  maximumPrice           Decimal?                @db.Decimal(12, 2)
+  botEnabled             Boolean                 @default(false)
+  normalizedStatus       ProductStatus           @default(UNKNOWN)
+  externalStatus         String?
+  sourceUpdatedAt        DateTime?               @db.Timestamptz(3)
+  createdAt              DateTime                @default(now()) @db.Timestamptz(3)
+  updatedAt              DateTime                @updatedAt @db.Timestamptz(3)
+  store                  Store                   @relation(fields: [storeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  competitorOffers       CompetitorOffer[]
+  priceChanges           PriceChange[]
+  orderItems             OrderItem[]
+  settingsOperationItems SettingsOperationItem[]
 
   @@unique([storeId, externalId])
   @@index([storeId, normalizedStatus])
@@ -85,6 +137,24 @@ model Product {
   @@index([category, updatedAt(sort: Desc)])
   @@index([botEnabled, updatedAt(sort: Desc)])
   @@index([updatedAt(sort: Desc), id(sort: Desc)])
+}
+
+model CatalogProduct {
+  id           String   @id @default(uuid()) @db.Uuid
+  externalId   String   @unique
+  name         String
+  imageUrl     String?
+  category     String?
+  barcode      String?
+  mpn          String?
+  defaultPrice Decimal  @db.Decimal(12, 2)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([active, name])
+  @@index([barcode])
+  @@index([mpn])
 }
 
 model CompetitorOffer {
@@ -104,22 +174,114 @@ model CompetitorOffer {
 }
 
 model PriceChange {
-  id              String               @id @default(uuid()) @db.Uuid
-  productId       String               @db.Uuid
-  oldPrice        Decimal              @db.Decimal(12, 2)
-  newPrice        Decimal              @db.Decimal(12, 2)
-  competitorPrice Decimal?             @db.Decimal(12, 2)
-  minimumPrice    Decimal?             @db.Decimal(12, 2)
-  maximumPrice    Decimal?             @db.Decimal(12, 2)
-  direction       PriceChangeDirection
-  reason          String
-  source          String
-  createdAt       DateTime             @default(now()) @db.Timestamptz(3)
-  product         Product              @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                  String               @id @default(uuid()) @db.Uuid
+  productId           String               @db.Uuid
+  settingsOperationId String?              @db.Uuid
+  oldPrice            Decimal              @db.Decimal(12, 2)
+  newPrice            Decimal              @db.Decimal(12, 2)
+  competitorPrice     Decimal?             @db.Decimal(12, 2)
+  minimumPrice        Decimal?             @db.Decimal(12, 2)
+  maximumPrice        Decimal?             @db.Decimal(12, 2)
+  direction           PriceChangeDirection
+  reason              String
+  source              String
+  createdAt           DateTime             @default(now()) @db.Timestamptz(3)
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  settingsOperation   SettingsOperation?   @relation(fields: [settingsOperationId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@index([productId, createdAt(sort: Desc)])
+  @@index([settingsOperationId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([direction, createdAt(sort: Desc)])
+}
+
+model SettingsOperation {
+  id             String                  @id @default(uuid()) @db.Uuid
+  storeId        String                  @db.Uuid
+  type           SettingsOperationType
+  parameters     Json
+  matchedCount   Int                     @default(0)
+  affectedCount  Int                     @default(0)
+  unchangedCount Int                     @default(0)
+  skippedCount   Int                     @default(0)
+  createdAt      DateTime                @default(now()) @db.Timestamptz(3)
+  store          Store                   @relation(fields: [storeId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  items          SettingsOperationItem[]
+  priceChanges   PriceChange[]
+
+  @@index([storeId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([type, createdAt(sort: Desc)])
+}
+
+model SettingsOperationItem {
+  id                String            @id @default(uuid()) @db.Uuid
+  operationId       String            @db.Uuid
+  productId         String?           @db.Uuid
+  productExternalId String
+  productName       String
+  oldPrice          Decimal?          @db.Decimal(12, 2)
+  newPrice          Decimal?          @db.Decimal(12, 2)
+  oldMinimumPrice   Decimal?          @db.Decimal(12, 2)
+  newMinimumPrice   Decimal?          @db.Decimal(12, 2)
+  oldMaximumPrice   Decimal?          @db.Decimal(12, 2)
+  newMaximumPrice   Decimal?          @db.Decimal(12, 2)
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  operation         SettingsOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  product           Product?          @relation(fields: [productId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([operationId, productExternalId])
+  @@index([operationId])
+  @@index([productId])
+}
+
+model Order {
+  id            String               @id @default(uuid()) @db.Uuid
+  storeId       String               @db.Uuid
+  externalId    String
+  customerName  String?
+  totalAmount   Decimal              @db.Decimal(12, 2)
+  orderedAt     DateTime             @db.Timestamptz(3)
+  currentStatus OrderStatus
+  loadedAt      DateTime             @db.Timestamptz(3)
+  createdAt     DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime             @updatedAt @db.Timestamptz(3)
+  store         Store                @relation(fields: [storeId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
+  @@unique([storeId, externalId])
+  @@index([storeId, orderedAt(sort: Desc), id(sort: Desc)])
+  @@index([storeId, currentStatus, orderedAt(sort: Desc)])
+  @@index([storeId, loadedAt(sort: Desc)])
+}
+
+model OrderItem {
+  id                String   @id @default(uuid()) @db.Uuid
+  orderId           String   @db.Uuid
+  productId         String?  @db.Uuid
+  productExternalId String?
+  productName       String
+  imageUrl          String?
+  quantity          Int
+  unitPrice         Decimal  @db.Decimal(12, 2)
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  product           Product? @relation(fields: [productId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([orderId, productExternalId])
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id         String      @id @default(uuid()) @db.Uuid
+  orderId    String      @db.Uuid
+  status     OrderStatus
+  occurredAt DateTime    @db.Timestamptz(3)
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([orderId, status, occurredAt])
+  @@index([orderId, occurredAt, id])
+  @@index([status, occurredAt(sort: Desc)])
 }
 
 model BotRun {
@@ -142,12 +304,13 @@ model BotRun {
 }
 
 model BotSettings {
-  id                               String   @id @default(uuid()) @db.Uuid
-  botEnabled                       Boolean  @default(false)
+  id                               String         @id @default(uuid()) @db.Uuid
+  botEnabled                       Boolean        @default(false)
+  botPriceSource                   BotPriceSource @default(BBU)
   checkIntervalMinutes             Int
-  undercutAmount                   Decimal  @default(0.01) @db.Decimal(12, 2)
-  allowProductsWithoutMinimumPrice Boolean  @default(false)
+  undercutAmount                   Decimal        @default(0.01) @db.Decimal(12, 2)
+  allowProductsWithoutMinimumPrice Boolean        @default(false)
   friendStoreExternalId            String?
-  createdAt                        DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt                        DateTime @updatedAt @db.Timestamptz(3)
+  createdAt                        DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt                        DateTime       @updatedAt @db.Timestamptz(3)
 }

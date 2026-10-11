@@ -13,6 +13,11 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "test:api": "tsx src/smoke-test.ts",
+    "test:catalog": "tsx src/catalog-test.ts",
+    "test:settings": "tsx src/settings-test.ts",
+    "test:settings-operations": "tsx src/settings-operations-test.ts",
+    "test:orders": "tsx src/orders-test.ts",
+    "test:milestone": "npm run test:catalog && npm run test:settings && npm run test:settings-operations && npm run test:orders",
     "postinstall": "prisma generate"
   },
   "dependencies": {

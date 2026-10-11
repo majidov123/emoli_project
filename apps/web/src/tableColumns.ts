@@ -1,6 +1,17 @@
 export interface TableColumn<Id extends string> {
   id: Id;
   label: string;
+  /** Preferred desktop width. Visible columns are summed to decide when scrolling is truly needed. */
+  width: number;
+}
+
+export const BOT_SELECTION_COLUMN_WIDTH = 42;
+
+export function preferredTableWidth<Id extends string>(
+  columns: readonly TableColumn<Id>[],
+  fixedWidth = 0
+) {
+  return fixedWidth + columns.reduce((total, column) => total + column.width, 0);
 }
 
 export const BBU_COLUMN_IDS = [
@@ -25,22 +36,22 @@ export const BBU_COLUMN_IDS = [
 export type BbuColumnId = (typeof BBU_COLUMN_IDS)[number];
 
 export const BBU_COLUMNS: readonly TableColumn<BbuColumnId>[] = [
-  { id: "number", label: "N°" },
-  { id: "productCode", label: "Məhsul kodu" },
-  { id: "productName", label: "Məhsulun adı" },
-  { id: "quantity", label: "Miqdar" },
-  { id: "currentPrice", label: "Endirimli qiymət" },
-  { id: "marketplacePrice", label: "Umicodakı qiymət" },
-  { id: "cheapestSeller", label: "Ucuz satıcı" },
-  { id: "updatedAt", label: "Tarix" },
-  { id: "article", label: "Artikul" },
-  { id: "mpn", label: "MPN" },
-  { id: "barcode", label: "Barkod" },
-  { id: "costPrice", label: "Maya qiyməti" },
-  { id: "limit", label: "Limit" },
-  { id: "status", label: "Status" },
-  { id: "pickupPoint", label: "Götürülmə nöqtəsi" },
-  { id: "botStatus", label: "Bot statusu" }
+  { id: "number", label: "N°", width: 46 },
+  { id: "productCode", label: "Məhsul kodu", width: 104 },
+  { id: "productName", label: "Məhsulun adı", width: 196 },
+  { id: "quantity", label: "Miqdar", width: 60 },
+  { id: "currentPrice", label: "Endirimli qiymət", width: 98 },
+  { id: "marketplacePrice", label: "Umicodakı qiymət", width: 104 },
+  { id: "cheapestSeller", label: "Ucuz satıcı", width: 124 },
+  { id: "updatedAt", label: "Tarix", width: 98 },
+  { id: "article", label: "Artikul", width: 100 },
+  { id: "mpn", label: "MPN", width: 96 },
+  { id: "barcode", label: "Barkod", width: 116 },
+  { id: "costPrice", label: "Maya qiyməti", width: 100 },
+  { id: "limit", label: "Limit", width: 120 },
+  { id: "status", label: "Status", width: 110 },
+  { id: "pickupPoint", label: "Götürülmə nöqtəsi", width: 128 },
+  { id: "botStatus", label: "Bot statusu", width: 102 }
 ];
 
 export const BBU_DEFAULT_VISIBLE: readonly BbuColumnId[] = [
@@ -73,17 +84,17 @@ export const BOT_COLUMN_IDS = [
 export type BotColumnId = (typeof BOT_COLUMN_IDS)[number];
 
 export const BOT_COLUMNS: readonly TableColumn<BotColumnId>[] = [
-  { id: "image", label: "Şəkil" },
-  { id: "name", label: "Ad" },
-  { id: "productCode", label: "Məhsul kodu" },
-  { id: "category", label: "Kateqoriya" },
-  { id: "currentPrice", label: "Yeni qiymət" },
-  { id: "previousPrice", label: "Köhnə qiymət" },
-  { id: "stock", label: "Stok" },
-  { id: "competitorPrice", label: "Ən ucuz" },
-  { id: "minimumPrice", label: "Alt limit" },
-  { id: "marketplaceStatus", label: "BBU Status" },
-  { id: "botStatus", label: "Bot statusu" }
+  { id: "image", label: "Şəkil", width: 58 },
+  { id: "name", label: "Ad", width: 176 },
+  { id: "productCode", label: "Məhsul kodu", width: 100 },
+  { id: "category", label: "Kateqoriya", width: 104 },
+  { id: "currentPrice", label: "Yeni qiymət", width: 84 },
+  { id: "previousPrice", label: "Köhnə qiymət", width: 84 },
+  { id: "stock", label: "Stok", width: 52 },
+  { id: "competitorPrice", label: "Ən ucuz", width: 86 },
+  { id: "minimumPrice", label: "Alt limit", width: 116 },
+  { id: "marketplaceStatus", label: "BBU Status", width: 108 },
+  { id: "botStatus", label: "Bot statusu", width: 98 }
 ];
 
 export const BOT_DEFAULT_VISIBLE: readonly BotColumnId[] = [...BOT_COLUMN_IDS];

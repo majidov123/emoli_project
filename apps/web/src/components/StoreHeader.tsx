@@ -6,8 +6,12 @@ interface StoreHeaderProps {
   loading: boolean;
   error: string | null;
   search: string;
+  refreshing: boolean;
   onSearchChange: (value: string) => void;
   onRetry: () => void;
+  onAddProduct: () => void;
+  onRefreshProducts: () => void;
+  onOpenSettings: () => void;
 }
 
 export function StoreHeader({
@@ -15,8 +19,12 @@ export function StoreHeader({
   loading,
   error,
   search,
+  refreshing,
   onSearchChange,
-  onRetry
+  onRetry,
+  onAddProduct,
+  onRefreshProducts,
+  onOpenSettings
 }: StoreHeaderProps) {
   return (
     <header className="dashboard-header">
@@ -53,15 +61,32 @@ export function StoreHeader({
         </div>
 
         <div className="store-panel__actions" aria-label="Mağaza əməliyyatları">
-          <button type="button" className="button button--primary" disabled title="Növbəti mərhələdə aktiv olacaq">
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={onAddProduct}
+            disabled={!store || refreshing}
+            aria-haspopup="dialog"
+          >
             <Icon name="plus" />
             Məhsul əlavə et
           </button>
-          <button type="button" className="button button--secondary" disabled title="Növbəti mərhələdə aktiv olacaq">
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={onRefreshProducts}
+            disabled={!store || refreshing}
+            aria-busy={refreshing}
+          >
             <Icon name="refresh" />
-            Məhsulları yenilə
+            {refreshing ? "Yenidən yüklənir…" : "Məhsulları yenilə"}
           </button>
-          <button type="button" className="button button--primary" disabled title="Növbəti mərhələdə aktiv olacaq">
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={onOpenSettings}
+            aria-haspopup="dialog"
+          >
             <Icon name="sliders" />
             Parametrlər
           </button>
@@ -80,7 +105,7 @@ export function StoreHeader({
         </label>
 
         <p className="store-panel__notice">
-          Əlavə etmə, yeniləmə və parametrlər növbəti mərhələlərdə aktiv olacaq.
+          Yeniləmə yalnız yerli məlumatları yenidən oxuyur; marketplace sinxronizasiyası aparılmır.
         </p>
       </section>
     </header>

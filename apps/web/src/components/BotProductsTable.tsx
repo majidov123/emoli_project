@@ -1,6 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { formatMoney } from "../formatters";
-import type { BotColumnId, TableColumn } from "../tableColumns";
+import {
+  BOT_SELECTION_COLUMN_WIDTH,
+  preferredTableWidth,
+  type BotColumnId,
+  type TableColumn
+} from "../tableColumns";
 import type { Product } from "../types";
 import { Icon } from "./Icon";
 import { MarketplaceStatus, ProductImagePlaceholder, ReadOnlySwitch } from "./ProductBits";
@@ -23,11 +28,18 @@ export function BotProductsTable({
   onEditLimits
 }: BotProductsTableProps) {
   const allSelected = products.length > 0 && products.every((product) => selectedIds.has(product.id));
+  const preferredWidth = preferredTableWidth(columns, BOT_SELECTION_COLUMN_WIDTH);
 
   return (
     <div className="table-scroll" tabIndex={0} aria-label="Bot məhsulları cədvəli, üfüqi sürüşdürülə bilər">
-      <table className="product-table product-table--bot">
+      <table className="product-table product-table--bot" style={{ minWidth: `${preferredWidth}px` }}>
         <caption className="sr-only">Bot məhsullarının qiymət, limit, stok və status məlumatları</caption>
+        <colgroup>
+          <col style={{ width: `${BOT_SELECTION_COLUMN_WIDTH}px` }} />
+          {columns.map((column) => (
+            <col key={column.id} style={{ width: `${column.width}px` }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
             <th scope="col" className="checkbox-cell">
@@ -38,7 +50,9 @@ export function BotProductsTable({
                 aria-label="Bu səhifədəki bütün məhsulları seç"
               />
             </th>
-            {columns.map((column) => <th key={column.id} scope="col">{column.label}</th>)}
+            {columns.map((column) => (
+              <th key={column.id} scope="col" className={`column-${column.id}`}>{column.label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -53,7 +67,7 @@ export function BotProductsTable({
                 />
               </td>
               {columns.map((column) => (
-                <td key={column.id} className={botCellClassName(column.id)}>
+                <td key={column.id} className={`column-${column.id} ${botCellClassName(column.id) ?? ""}`}>
                   {renderBotCell(column.id, product, onEditLimits)}
                 </td>
               ))}
@@ -76,12 +90,12 @@ function renderBotCell(
     case "name":
       return (
         <>
-          <strong>{product.name}</strong>
+          <strong title={product.name}>{product.name}</strong>
           <span>{product.brand ?? "Brend qeyd edilməyib"}</span>
         </>
       );
     case "productCode":
-      return <code className="product-code">{product.externalId}</code>;
+      return <code className="product-code" title={product.externalId}>{product.externalId}</code>;
     case "category":
       return product.category ?? "—";
     case "currentPrice":

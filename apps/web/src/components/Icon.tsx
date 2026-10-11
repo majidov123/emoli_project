@@ -6,6 +6,7 @@ export type IconName =
   | "arrowUp"
   | "bag"
   | "ban"
+  | "bolt"
   | "box"
   | "check"
   | "checkCircle"
@@ -24,7 +25,10 @@ export type IconName =
   | "plus"
   | "refresh"
   | "search"
+  | "send"
   | "sliders"
+  | "message"
+  | "logout"
   | "truck"
   | "x";
 
@@ -39,6 +43,7 @@ export function Icon({ name, className = "icon", ...props }: IconProps) {
     arrowUp: <><path d="M12 19V5"/><path d="m6 11 6-6 6 6"/></>,
     bag: <><path d="M6 8h12l-1 12H7L6 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></>,
     ban: <><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></>,
+    bolt: <path d="m13 2-8 12h7l-1 8 8-12h-7l1-8Z"/>,
     box: <><path d="m4 7 8-4 8 4-8 4-8-4Z"/><path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"/><path d="M12 11v10"/></>,
     check: <path d="m5 12 4 4L19 6"/>,
     checkCircle: <><circle cx="12" cy="12" r="9"/><path d="m8 12 2.7 2.7L16.5 9"/></>,
@@ -57,7 +62,10 @@ export function Icon({ name, className = "icon", ...props }: IconProps) {
     plus: <path d="M12 5v14M5 12h14"/>,
     refresh: <><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 9a7 7 0 0 1 11.5-2L20 9M4 15l2.4 2a7 7 0 0 0 11.5-2"/></>,
     search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
+    send: <><path d="m22 2-7 20-4-9-9-4 20-7Z"/><path d="M22 2 11 13"/></>,
     sliders: <><path d="M4 6h6M14 6h6M4 12h10M18 12h2M4 18h3M11 18h9"/><circle cx="12" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></>,
+    message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8M8 13h5"/></>,
+    logout: <><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></>,
     truck: <><path d="M3 6h11v11H3V6ZM14 10h4l3 3v4h-7v-7Z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></>,
     x: <path d="M6 6l12 12M18 6 6 18"/>
   };
