@@ -9,6 +9,7 @@ export interface PickupPoint {
   name: string;
   address: string;
   type: PickupPointType;
+  note: string;
   createdAt: string;
 }
 
@@ -37,14 +38,22 @@ export function parsePickupPoints(value: string | null): PickupPoint[] {
   try {
     const parsed: unknown = JSON.parse(value);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is PickupPoint => {
-      if (!item || typeof item !== "object") return false;
+    return parsed.flatMap((item): PickupPoint[] => {
+      if (!item || typeof item !== "object") return [];
       const point = item as Partial<PickupPoint>;
-      return typeof point.id === "string"
-        && typeof point.name === "string"
-        && typeof point.address === "string"
-        && typeof point.createdAt === "string"
-        && isPickupPointType(point.type);
+      if (typeof point.id !== "string"
+        || typeof point.name !== "string"
+        || typeof point.address !== "string"
+        || typeof point.createdAt !== "string"
+        || !isPickupPointType(point.type)) return [];
+      return [{
+        id: point.id,
+        name: point.name,
+        address: point.address,
+        type: point.type,
+        note: typeof point.note === "string" ? point.note : "",
+        createdAt: point.createdAt
+      }];
     });
   } catch {
     return [];
@@ -128,4 +137,19 @@ export const ANALYTICS_TOOLTIPS = {
   rating: "Birmarket-dəki satıcı reytinqin. Aşağı düşdükdə axtarış nəticələrindəki görünürlüğün azalır. 99%+ saxlamağa çalış.",
   products: "Platforma üzrə ümumi məhsul offer sayın (aktiv + deaktiv). Nə qədər çox məhsul, bir o qədər çox satış imkanı.",
   activeProducts: "Hal-hazırda aktiv vəziyyətdə olan məhsulların sayı. Bunlar müştəriyə görünən məhsullardır."
+} as const;
+
+export const SETTLEMENT_TOOLTIPS = {
+  orderAmount: "Müştərilərin sifariş verdiyi ümumi məbləğ (yaranma tarixinə görə). Hələ çatdırılmamış sifarişlər də daxildir.",
+  deliveredAmount: "Faktiki çatdırılıb tamamlanan sifarişlərin ümumi dəyəri. Sənin hesabına köçürüləcək məbləğin əsasıdır.",
+  deliveryPercentage: "Sifariş məbləğinin neçə faizi çatdırıldı. Bu göstərici nə qədər yüksəkdirsə, bir o qədər yaxşıdır.",
+  sales: "Hesablaşma dövrü üzrə faktiki satış məbləği. Bank komissiyası hələ çıxılmayıb.",
+  bankCommission: "Bank kartı ilə edilən ödənişlər üçün bankın tutduğu faiz. Adətən 1-3% arasında olur.",
+  commissionPercentage: "Bank komissiyasının satışlara nisbəti. Bu faiz nə qədər aşağı olsa bir o qədər yaxşıdır.",
+  umicoTr: "TR (Take Rate) — Birmarket platformasının öz komissiyası. Kateqoriyaya görə dəyişir (adətən 5-15%).",
+  trWithVat: "Umico TR komissiyasına ƏDV (18%) əlavə edilmiş məbləğ.",
+  trPercentage: "Platform komissiyasının satışlara nisbəti (faizlə).",
+  installmentCommission: "Taksitli (hissə-hissə ödəniş) sifarişlər üçün əlavə komissiya. Müştəri taksit seçirsə bu məbləğ tutulur.",
+  netIncome: "Bütün komissiyalar (bank, platform, taksit) çıxıldıqdan sonra sənin hesabına gələcək xalis məbləğ.",
+  incomePercentage: "Xalis gəlirin satışlara nisbəti. Məsələn 80% o deməkdir ki, hər 100 ₼ satışdan 80 ₼ sənin olur."
 } as const;

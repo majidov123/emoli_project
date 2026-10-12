@@ -6,6 +6,7 @@ import { formatAznDecimal } from "./orderStatus";
 import { AnalyticsTooltip } from "./AnalyticsTooltip";
 import {
   ANALYTICS_TOOLTIPS,
+  SETTLEMENT_TOOLTIPS,
   calculateAnalyticsMetrics,
   calculateTopProducts,
   currentMonthPeriod,
@@ -38,19 +39,19 @@ const metricCards: Array<{
 ];
 
 const settlementMetrics = [
-  ["Sifariş məbləği", "draft", "violet"],
-  ["Çatdırılmış məbləğ", "draft", "green"],
-  ["Çatdırılma %", "sliders", "blue"],
-  ["Satışlar", "draft", "green"],
-  ["Bank komissiyası", "draft", "red"],
-  ["Komissiya %", "sliders", "orange"],
-  ["Lokal TR", "draft", "purple"],
-  ["TR + ƏDV", "draft", "purple"],
-  ["TR %", "sliders", "blue"],
-  ["Taksit komissiyası", "draft", "orange"],
-  ["Xalis gəlir", "draft", "green"],
-  ["Gəlir %", "sliders", "cyan"]
-] as const satisfies ReadonlyArray<readonly [string, IconName, string]>;
+  ["orderAmount", "SİFARİŞ MƏBLƏĞİ", "draft", "violet"],
+  ["deliveredAmount", "ÇATDIRILMIŞ MƏBLƏĞ", "draft", "green"],
+  ["deliveryPercentage", "ÇATDIRILMA %", "sliders", "blue"],
+  ["sales", "SATIŞLAR", "draft", "green"],
+  ["bankCommission", "BANK KOMİSSİYASI", "draft", "red"],
+  ["commissionPercentage", "KOMİSSİYA %", "sliders", "orange"],
+  ["umicoTr", "UMİCO TR", "draft", "purple"],
+  ["trWithVat", "TR + ƏDV", "draft", "purple"],
+  ["trPercentage", "TR %", "sliders", "blue"],
+  ["installmentCommission", "TAKSİT KOMİSSİYASI", "draft", "orange"],
+  ["netIncome", "XALİS GƏLİR", "draft", "green"],
+  ["incomePercentage", "GƏLİR %", "sliders", "cyan"]
+] as const satisfies ReadonlyArray<readonly [keyof typeof SETTLEMENT_TOOLTIPS, string, IconName, string]>;
 
 function formatCount(value: number | null) {
   return value === null ? "—" : new Intl.NumberFormat("az-AZ").format(value);
@@ -151,7 +152,7 @@ export function AnalyticsDashboard({ orders, summary, loading, error, onRefresh 
       <section className="analytics-section" aria-labelledby="analytics-settlement-heading">
         <header className="analytics-section__heading"><span className="analytics-section__icon"><Icon name="draft" /></span><div><h2 id="analytics-settlement-heading">Hesablaşma məlumatları <span className="analytics-placeholder-help">?</span></h2><p>Maliyyə göstəriciləri</p></div></header>
         <div className="analytics-metric-grid analytics-metric-grid--settlement">
-          {settlementMetrics.map(([label, icon, tone]) => <article className="analytics-metric-card analytics-metric-card--compact" key={label}><span className="analytics-metric-card__icon" data-tone={tone}><Icon name={icon} /></span><div className="analytics-metric-card__label"><span>{label}</span><span className="analytics-placeholder-help">?</span></div><strong>—</strong></article>)}
+          {settlementMetrics.map(([key, label, icon, tone]) => <article className="analytics-metric-card analytics-metric-card--compact" key={key}><span className="analytics-metric-card__icon" data-tone={tone}><Icon name={icon} /></span><div className="analytics-metric-card__label"><span>{label}</span><AnalyticsTooltip label={label} text={SETTLEMENT_TOOLTIPS[key]} /></div><strong>—</strong></article>)}
         </div>
       </section>
 
