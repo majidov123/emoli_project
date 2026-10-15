@@ -18,6 +18,8 @@ export interface AnalyticsPeriod {
   to: string;
 }
 
+export const ANALYTICS_PERIOD_STORAGE_KEY = "emoli:analytics-period";
+
 export interface AnalyticsMetrics {
   turnover: string;
   orderCount: number;
@@ -71,6 +73,26 @@ export function currentMonthPeriod(now = new Date()): AnalyticsPeriod {
   return { from: `${year}-${month}-01`, to: `${year}-${month}-${finalDay}` };
 }
 
+export function parseAnalyticsPeriod(value: string | null): AnalyticsPeriod | null {
+  if (!value) return null;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object") return null;
+    const period = parsed as Partial<AnalyticsPeriod>;
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (typeof period.from !== "string"
+      || typeof period.to !== "string"
+      || !datePattern.test(period.from)
+      || !datePattern.test(period.to)
+      || Number.isNaN(Date.parse(`${period.from}T00:00:00Z`))
+      || Number.isNaN(Date.parse(`${period.to}T00:00:00Z`))
+      || period.from > period.to) return null;
+    return { from: period.from, to: period.to };
+  } catch {
+    return null;
+  }
+}
+
 export function ordersInPeriod(orders: readonly LocalOrder[], period: AnalyticsPeriod) {
   return orders.filter((order) => {
     const day = order.orderedAt.slice(0, 10);
@@ -106,7 +128,7 @@ export interface TopProductMetric {
   quantity: number;
 }
 
-export function calculateTopProducts(orders: readonly LocalOrder[]): TopProductMetric[] {
+export function calculateTopProducts(orders: readonly LocalOrder[], sortBy: "amount" | "quantity" = "amount"): TopProductMetric[] {
   const products = new Map<string, { amount: bigint; quantity: number }>();
   for (const order of orders) {
     for (const item of order.items) {
@@ -121,6 +143,9 @@ export function calculateTopProducts(orders: readonly LocalOrder[]): TopProductM
   return [...products.entries()]
     .map(([name, value]) => ({ name, amount: centsToDecimalString(value.amount), quantity: value.quantity }))
     .sort((left, right) => {
+      if (sortBy === "quantity") {
+        if (left.quantity !== right.quantity) return right.quantity - left.quantity;
+      }
       const leftAmount = decimalStringToCents(left.amount) ?? 0n;
       const rightAmount = decimalStringToCents(right.amount) ?? 0n;
       return leftAmount === rightAmount ? right.quantity - left.quantity : leftAmount > rightAmount ? -1 : 1;
@@ -152,4 +177,32 @@ export const SETTLEMENT_TOOLTIPS = {
   installmentCommission: "Taksitli (hissə-hissə ödəniş) sifarişlər üçün əlavə komissiya. Müştəri taksit seçirsə bu məbləğ tutulur.",
   netIncome: "Bütün komissiyalar (bank, platform, taksit) çıxıldıqdan sonra sənin hesabına gələcək xalis məbləğ.",
   incomePercentage: "Xalis gəlirin satışlara nisbəti. Məsələn 80% o deməkdir ki, hər 100 ₼ satışdan 80 ₼ sənin olur."
+} as const;
+
+export const ANALYTICS_PERIOD_TOOLTIP = "📅 Dövr seçimi\n\nAşağıdakı tarix seçicidən istənilən ay aralığını seçin, sonra \"Yenilə\" düyməsini basın.\n\n💾 Seçilmiş dövr yadda saxlanılır — səhifəni yeniləsəniz belə həmin tarix aralığını göstərməyə davam edəcək.";
+
+export const ANALYTICS_SECTION_TOOLTIPS = {
+  daily: "Seçilmiş dövr ərzində günlük satış həcmini göstərir. Hansı günlərdə daha aktiv olduğunu görüb kampaniyalarını planlaya bilərsən.",
+  category: "Satışlarının hansı kateqoriyalardan gəldiyini göstərir. Məsələn 'Elektronika' 70%, 'Ev əşyaları' 30%. Hansı kateqoriyaya daha çox diqqət etmək lazım olduğunu görürsən.",
+  priceComparison: "Hər məhsulun sənin qiymətin ilə rəqiblərin qiyməti müqayisə edilir. Hansı məhsullarda bahalı satdığını görüb qiymət strategiyasını qura bilərsən."
+} as const;
+
+export const RANKING_TOOLTIPS = {
+  top20Amount: "Sənin mağazandan ən çox gəlir gətirən 20 məhsul. Bu məhsulların ehtiyatı həmişə dolu saxlanılmalıdır.",
+  top20Quantity: "Sənin mağazandan ən çox ədəd satılan 20 məhsul. Ucuz amma tez-tez satılan məhsulları görürsən.",
+  top100Amount: "Bütün Birmarket platformasında ən çox gəlir gətirən 100 məhsul (yalnız sənin mağazan yox, bütün satıcılar). Əgər bu siyahıdakı məhsullar sənin mağazanda yoxdursa — bu bir imkandır!",
+  top100Quantity: "Bütün Birmarket platformasında ən çox ədəd satılan 100 məhsul. Bazarda ən populyar məhsulları buradan izləyə bilərsən."
+} as const;
+
+export const PRICE_COMPARISON_COLUMN_TOOLTIPS = {
+  code: "Birmarket-dəki məhsul kodu (ID).",
+  productName: "Birmarket-dəki məhsulun adı.",
+  category: "Məhsulun aid olduğu kateqoriya.",
+  brand: "Məhsulun brendi.",
+  yourPrice: "Sənin bu məhsul üçün qoyduğun qiymət.",
+  minimumPrice: "Birmarket-də bu məhsulun digər satıcılar arasındakı ən aşağı qiymət (rəqibin qiyməti).",
+  difference: "Sənin qiymətinin rəqib qiymətindən fərqi. 🟢 Mənfi = sən ucuzsan. 🔴 Müsbət = rəqib daha ucuzdur.",
+  minimumSeller: "Bu məhsulu ən ucuz qiymətə satan mağaza.",
+  sellerCount: "Bu məhsulu satan aktiv mağaza sayı. Çox rəqib var deməkdir.",
+  link: "Birmarket-dəki məhsul səhifəsinə keçid."
 } as const;

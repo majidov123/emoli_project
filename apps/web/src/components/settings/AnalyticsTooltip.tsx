@@ -1,9 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface AnalyticsTooltipProps {
   label: string;
   text: string;
+  triggerClassName?: string;
+  triggerContent?: ReactNode;
 }
 
 interface TooltipPosition {
@@ -13,7 +15,7 @@ interface TooltipPosition {
   placement: "above" | "below";
 }
 
-export function AnalyticsTooltip({ label, text }: AnalyticsTooltipProps) {
+export function AnalyticsTooltip({ label, text, triggerClassName = "", triggerContent = "?" }: AnalyticsTooltipProps) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<number | null>(null);
@@ -101,7 +103,7 @@ export function AnalyticsTooltip({ label, text }: AnalyticsTooltipProps) {
       <button
         ref={triggerRef}
         type="button"
-        className="analytics-help-trigger"
+        className={`analytics-help-trigger ${triggerClassName}`.trim()}
         aria-label={`${label} izahı`}
         aria-expanded={visible}
         onClick={() => setPinned((value) => !value)}
@@ -109,7 +111,7 @@ export function AnalyticsTooltip({ label, text }: AnalyticsTooltipProps) {
         onMouseLeave={scheduleHoverClose}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-      >?</button>
+      >{triggerContent}</button>
       {visible ? createPortal(
         <div
           ref={tooltipRef}
