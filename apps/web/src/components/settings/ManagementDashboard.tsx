@@ -6,6 +6,7 @@ import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { OrderListDialog } from "./OrderListDialog";
 import { OrdersDashboard } from "./OrdersDashboard";
 import { PickupPointsDashboard } from "./PickupPointsDashboard";
+import { PriceFormulaDashboard } from "./PriceFormulaDashboard";
 import { ORDER_STATUS_OPTIONS } from "./orderStatus";
 
 type ManagementTab = "overview" | "orders" | "pickup" | "analytics" | "formula" | "productAnalytics" | "reports";
@@ -175,6 +176,8 @@ export function ManagementDashboard({ onBack }: ManagementDashboardProps) {
             <Icon name="alert" /><p>{error}</p>
             <button type="button" className="button button--secondary" onClick={() => setReloadKey((value) => value + 1)}>Yenidən yoxla</button>
           </div>
+        ) : activeTab === "formula" ? (
+          <PriceFormulaDashboard storeId={summary?.store.id} />
         ) : activeTab !== "overview" ? (
           <div className="management-empty">
             <Icon name={tabs.find((tab) => tab.id === activeTab)?.icon ?? "grid"} />

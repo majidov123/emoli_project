@@ -13,6 +13,7 @@ export type IconName =
   | "chevronLeft"
   | "chevronRight"
   | "columns"
+  | "copy"
   | "draft"
   | "edit"
   | "eye"
@@ -30,6 +31,7 @@ export type IconName =
   | "message"
   | "logout"
   | "truck"
+  | "trash"
   | "x";
 
 interface IconProps extends SVGProps<SVGSVGElement> {
@@ -50,6 +52,7 @@ export function Icon({ name, className = "icon", ...props }: IconProps) {
     chevronLeft: <path d="m15 18-6-6 6-6"/>,
     chevronRight: <path d="m9 18 6-6-6-6"/>,
     columns: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M9 5v14M15 5v14"/></>,
+    copy: <><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></>,
     draft: <><path d="M5 4h10l4 4v12H5V4Z"/><path d="M14 4v5h5"/><path d="M8 14h8M8 17h5"/></>,
     edit: <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z"/></>,
     eye: <><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z"/><circle cx="12" cy="12" r="2.5"/></>,
@@ -67,6 +70,7 @@ export function Icon({ name, className = "icon", ...props }: IconProps) {
     message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8M8 13h5"/></>,
     logout: <><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/></>,
     truck: <><path d="M3 6h11v11H3V6ZM14 10h4l3 3v4h-7v-7Z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></>,
+    trash: <><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></>,
     x: <path d="M6 6l12 12M18 6 6 18"/>
   };
 

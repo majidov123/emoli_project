@@ -22,6 +22,7 @@
     "test:orders": "npm run test:orders -w @birmarket/api",
     "test:dashboard": "npm run test:dashboard -w @birmarket/web",
     "test:orders-ui": "npm run test:orders-ui -w @birmarket/web",
+    "test:formula": "npm run test:formula -w @birmarket/web",
     "test:excel": "npm run test:excel -w @birmarket/web",
     "test:milestone": "npm run test:milestone -w @birmarket/api && npm run test:dashboard -w @birmarket/web && npm run test:orders-ui -w @birmarket/web && npm run test:excel -w @birmarket/web"
   },

@@ -9,6 +9,7 @@
     "check": "tsc -b --noEmit",
     "test:dashboard": "tsx tests/dashboard-test.ts",
     "test:orders-ui": "tsx tests/orders-dashboard-test.ts",
+    "test:formula": "tsx --tsconfig tsconfig.app.json tests/price-formula-test.ts",
     "test:excel": "tsx tests/product-excel-test.ts",
     "preview": "vite preview"
   },
